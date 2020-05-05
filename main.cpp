@@ -1,6 +1,8 @@
 
 #include <vector>
+#include<queue>
 #include <iostream>
+#include <stdlib.h>
 #define PUZSIZE 3 //puzzle size is 3
 using namespace std;
 class Puzzle{
@@ -8,7 +10,9 @@ class Puzzle{
 		unsigned int size;
 		unsigned int spacex;
 		unsigned int spacey;
+		unsigned int steps = 0;
 		vector<vector<int>*>* puz;
+		int dist = -1;
 		Puzzle(unsigned int s){
 			size = s;
 			int num = 1;
@@ -34,6 +38,7 @@ class Puzzle{
 			spacex = sx;
 			spacey = sy;
 			puz = p;
+			dist = -1;
 		}
 		void Print(){
 			for (unsigned int y = 0; y < size; y++){
@@ -83,6 +88,7 @@ class Puzzle{
 			newPuz->at(spacex)->at(spacey) = puz->at(spacex)->at(spacey-1);
 			newPuz->at(spacex)->at(spacey-1) = 0;
 			Puzzle* p = new Puzzle(PUZSIZE,spacex,spacey-1, newPuz);
+			p->steps = steps + 1;
 			return p;
 		}
 		Puzzle* MoveUp(){
@@ -93,6 +99,7 @@ class Puzzle{
 			newPuz->at(spacex)->at(spacey) = puz->at(spacex)->at(spacey+1);
 			newPuz->at(spacex)->at(spacey+1) = 0;
 			Puzzle* p = new Puzzle(PUZSIZE,spacex,spacey+1, newPuz);
+			p->steps = steps + 1;
 			return p;
 		}
 		Puzzle* MoveLeft(){
@@ -103,6 +110,7 @@ class Puzzle{
 			newPuz->at(spacex)->at(spacey) = puz->at(spacex+1)->at(spacey);
 			newPuz->at(spacex+1)->at(spacey) = 0;
 			Puzzle* p = new Puzzle(PUZSIZE,spacex+1,spacey, newPuz);
+			p->steps = steps + 1;
 			return p;
 		}
 		Puzzle* MoveRight(){
@@ -113,6 +121,7 @@ class Puzzle{
 			newPuz->at(spacex)->at(spacey) = puz->at(spacex-1)->at(spacey);
 			newPuz->at(spacex-1)->at(spacey) = 0;
 			Puzzle* p = new Puzzle(PUZSIZE,spacex-1,spacey, newPuz);
+			p->steps = steps + 1;
 			return p;
 		}
 		~Puzzle(){
@@ -125,24 +134,96 @@ class Puzzle{
 			}
 			delete puz;
 		}
+		bool CheckIfEqual(Puzzle* p2){
+			for (unsigned int y = 0; y < size; y++){
+				for (unsigned int x = 0; x < size; x++){
+					if (puz->at(x)->at(y) != p2->puz->at(x)->at(y)){
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+		int GetManhattansteps(){
+			if (dist > -1){
+				return dist;
+			}
+			dist = 0;
+			unsigned int currnum = 1;
+			for (int y = 0; y < size; y++){
+				for (int x = 0; x < size; x++){
+					bool breaking = false;
+					if (x == y && x == size-1){
+						break;
+					}
+					for ( int y2 = 0; y2 < size; y2++){
+						for (int x2 = 0; x2 < size; x2++){
+							if (currnum == puz->at(x2)->at(y2)){
+								int xdiff = x2 - x;
+								int ydiff = y2 - y;
+								dist += abs(xdiff) + abs(ydiff);
+								breaking = true;
+							}
+							if (breaking){break;}
+						}
+						if (breaking){break;}
+					}
+					currnum++;
+				}
+			}
+			return dist;
+		}
+
 };
 
+bool FindPuzzle(vector<Puzzle*>* eset, Puzzle* p){
+	for (unsigned int i = 0; i < eset->size(); i++){
+		if (eset->at(i)->CheckIfEqual(p)){
+			if (eset->at(i)->steps > p->steps){
+				delete eset->at(i);
+				eset->at(i) = p;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+class PuzzleComparestepsOnly
+{
+public:
+    bool operator() (Puzzle* p1, Puzzle* p2)
+    {
+        return p1->steps > p2->steps;
+    }
+};
+
+
 int main(){
+	vector<Puzzle*> exploredSet;
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleComparestepsOnly> pq;
 	cout << "hey" << endl;
 	Puzzle* p = new Puzzle(PUZSIZE);
 	p->Print();
 	cout << p->CheckIfSolved() << endl;
 	Puzzle* p2 = p->MoveDown();
-	delete p;
 	p2->Print();
 	cout << p2->CheckIfSolved() << endl;
 	Puzzle* p3 = p2->MoveRight();
-	delete p2;
 	p3->Print();
 	cout << p3->CheckIfSolved() << endl;
 	Puzzle* p4 = p3->MoveUp();
-	delete p3;
 	p4->Print();
 	cout << p4->CheckIfSolved() << endl;
-	delete p4;
+	cout << p4->GetManhattansteps() << endl;
+	pq.push(p);
+	pq.push(p2);
+	pq.push(p3);
+	pq.push(p4);
+	while (!pq.empty())
+    {
+        cout << pq.top()->steps << endl;
+        pq.pop();
+    }
+
 }

@@ -40,6 +40,20 @@ class Puzzle{
 			puz = p;
 			dist = -1;
 		}
+		Puzzle(unsigned int s, vector<vector<int>*>* p){
+			size = s;
+			puz = p;
+			dist = -1;
+			for (unsigned int y = 0; y < size; y++){
+				for (unsigned int x = 0; x < size; x++){
+					if (puz->at(x)->at(y) == 0){
+						spacex = x;
+						spacey = y;
+						break;
+					}
+				}
+			}
+		}
 		void Print(){
 			for (unsigned int y = 0; y < size; y++){
 				for (unsigned int x = 0; x < size; x++){
@@ -67,7 +81,6 @@ class Puzzle{
 			return solved;
 		}
 		vector<vector<int>*>* Clone(){
-			cout << "hey" << endl;
 			vector<vector<int>*>* newPuz = new vector<vector<int>*>();//create the vector vector (:
 			for (unsigned int i = 0; i < size; i++){
 				vector<int>* row = new vector<int>();//create vector for the vector vector (((:
@@ -104,7 +117,7 @@ class Puzzle{
 		}
 		Puzzle* MoveLeft(){
 			if (spacex == size-1){
-				return 0; //nothing right of us so this move is impossible
+				return 0; //nothing left of us so this move is impossible
 			}
 			vector<vector<int>*>* newPuz = Clone();
 			newPuz->at(spacex)->at(spacey) = puz->at(spacex+1)->at(spacey);
@@ -189,7 +202,7 @@ bool FindPuzzle(vector<Puzzle*>* eset, Puzzle* p){
 	return false;
 }
 
-class PuzzleComparestepsOnly
+class PuzzleCompareStepsOnly
 {
 public:
     bool operator() (Puzzle* p1, Puzzle* p2)
@@ -198,32 +211,87 @@ public:
     }
 };
 
+class PuzzleCompareHeuristicOnly
+{
+public:
+    bool operator() (Puzzle* p1, Puzzle* p2)
+    {
+        return p1->GetManhattansteps() > p2->GetManhattansteps();
+    }
+};
+
 
 int main(){
 	vector<Puzzle*> exploredSet;
-	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleComparestepsOnly> pq;
-	cout << "hey" << endl;
-	Puzzle* p = new Puzzle(PUZSIZE);
-	p->Print();
-	cout << p->CheckIfSolved() << endl;
-	Puzzle* p2 = p->MoveDown();
-	p2->Print();
-	cout << p2->CheckIfSolved() << endl;
-	Puzzle* p3 = p2->MoveRight();
-	p3->Print();
-	cout << p3->CheckIfSolved() << endl;
-	Puzzle* p4 = p3->MoveUp();
-	p4->Print();
-	cout << p4->CheckIfSolved() << endl;
-	cout << p4->GetManhattansteps() << endl;
-	pq.push(p);
-	pq.push(p2);
-	pq.push(p3);
-	pq.push(p4);
-	while (!pq.empty())
-    {
-        cout << pq.top()->steps << endl;
-        pq.pop();
-    }
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareStepsOnly> frontier;
+	vector<vector<int>*>* initialState = new vector<vector<int>*>();
+	for (unsigned int i = 0; i < PUZSIZE; i++){
+		vector<int>* row = new vector<int>();//create vector for the vector vector (((:
+		initialState->push_back(row);
+	}
 
+	initialState->at(0)->push_back(0);
+	initialState->at(1)->push_back(1);
+	initialState->at(2)->push_back(2);
+	initialState->at(0)->push_back(4);
+	initialState->at(1)->push_back(5);
+	initialState->at(2)->push_back(3);
+	initialState->at(0)->push_back(7);
+	initialState->at(1)->push_back(8);
+	initialState->at(2)->push_back(6);
+	Puzzle* initialPuzzle = new Puzzle(PUZSIZE,initialState);
+	initialPuzzle->Print();
+	unsigned int numNodes = 1;
+	unsigned int maxNodes = 1;
+	frontier.push(initialPuzzle);
+	bool found = false;
+	Puzzle* sol = 0;
+	while (frontier.size()){
+		Puzzle* curr = frontier.top();
+		frontier.pop();
+		if (curr->CheckIfSolved()){
+			found = true;
+			sol = curr;
+			break;
+		}
+		exploredSet.push_back(curr);
+		Puzzle* left = curr->MoveLeft();
+		if (left){
+			if (!FindPuzzle(&exploredSet,left)){
+				frontier.push(left);
+				numNodes++;
+			}
+		}
+		Puzzle* right = curr->MoveRight();
+		if (right){
+			if (!FindPuzzle(&exploredSet,right)){
+				frontier.push(right);
+				numNodes++;
+			}
+		}
+		Puzzle* up = curr->MoveUp();
+		if (up){
+			if (!FindPuzzle(&exploredSet,up)){
+				frontier.push(up);
+				numNodes++;
+			}
+		}
+		Puzzle* down = curr->MoveDown();
+		if (down){
+			if (!FindPuzzle(&exploredSet,down)){
+				frontier.push(down);
+				numNodes++;
+			}
+		}
+		if (frontier.size() > maxNodes){maxNodes  = frontier.size();}
+	}
+	if (found){
+		cout << "Solution found after creating " << numNodes << " nodes and a max of " << maxNodes << " in the queue at a time. Printing puzzle:" << endl;
+		sol->Print();
+		cout << "Number of steps taken: " << sol->steps << endl;
+	}
+	else{
+		
+		cout << "No solution found after creating " << numNodes << " and a max of " << maxNodes << " in the queue at a time." << endl;
+	}
 }

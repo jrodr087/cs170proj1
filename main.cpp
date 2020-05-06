@@ -3,6 +3,7 @@
 #include<queue>
 #include <iostream>
 #include <stdlib.h>
+#include <math.h>
 #define PUZSIZE 3 //puzzle size is 3
 using namespace std;
 class Puzzle{
@@ -157,7 +158,7 @@ class Puzzle{
 			}
 			return true;
 		}
-		int GetManhattansteps(){
+		int GetEuclidian(){
 			if (dist > -1){
 				return dist;
 			}
@@ -174,7 +175,7 @@ class Puzzle{
 							if (currnum == puz->at(x2)->at(y2)){
 								int xdiff = x2 - x;
 								int ydiff = y2 - y;
-								dist += abs(xdiff) + abs(ydiff);
+								dist += sqrt(xdiff*xdiff + ydiff*ydiff);
 								breaking = true;
 							}
 							if (breaking){break;}
@@ -211,36 +212,27 @@ public:
     }
 };
 
-class PuzzleCompareHeuristicOnly
+class PuzzleCompareGreedy
 {
 public:
     bool operator() (Puzzle* p1, Puzzle* p2)
     {
-        return p1->GetManhattansteps() > p2->GetManhattansteps();
+        return p1->GetEuclidian() > p2->GetEuclidian();
     }
 };
 
+class PuzzleCompareAStar
+{
+public:
+    bool operator() (Puzzle* p1, Puzzle* p2)
+    {
+        return (p1->GetEuclidian()+p1->steps) > (p2->GetEuclidian()+p2->steps);
+    }
+};
 
-int main(){
+void BreadthFirstSearch(Puzzle* initialPuzzle){
 	vector<Puzzle*> exploredSet;
 	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareStepsOnly> frontier;
-	vector<vector<int>*>* initialState = new vector<vector<int>*>();
-	for (unsigned int i = 0; i < PUZSIZE; i++){
-		vector<int>* row = new vector<int>();//create vector for the vector vector (((:
-		initialState->push_back(row);
-	}
-
-	initialState->at(0)->push_back(0);
-	initialState->at(1)->push_back(1);
-	initialState->at(2)->push_back(2);
-	initialState->at(0)->push_back(4);
-	initialState->at(1)->push_back(5);
-	initialState->at(2)->push_back(3);
-	initialState->at(0)->push_back(7);
-	initialState->at(1)->push_back(8);
-	initialState->at(2)->push_back(6);
-	Puzzle* initialPuzzle = new Puzzle(PUZSIZE,initialState);
-	initialPuzzle->Print();
 	unsigned int numNodes = 1;
 	unsigned int maxNodes = 1;
 	frontier.push(initialPuzzle);
@@ -294,4 +286,203 @@ int main(){
 		
 		cout << "No solution found after creating " << numNodes << " and a max of " << maxNodes << " in the queue at a time." << endl;
 	}
+}
+
+void GreedySearch(Puzzle* initialPuzzle){
+	vector<Puzzle*> exploredSet;
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareGreedy> frontier;
+	unsigned int numNodes = 1;
+	unsigned int maxNodes = 1;
+	frontier.push(initialPuzzle);
+	bool found = false;
+	Puzzle* sol = 0;
+	while (frontier.size()){
+		Puzzle* curr = frontier.top();
+		frontier.pop();
+		if (curr->CheckIfSolved()){
+			found = true;
+			sol = curr;
+			break;
+		}
+		exploredSet.push_back(curr);
+		Puzzle* left = curr->MoveLeft();
+		if (left){
+			if (!FindPuzzle(&exploredSet,left)){
+				frontier.push(left);
+				numNodes++;
+			}
+		}
+		Puzzle* right = curr->MoveRight();
+		if (right){
+			if (!FindPuzzle(&exploredSet,right)){
+				frontier.push(right);
+				numNodes++;
+			}
+		}
+		Puzzle* up = curr->MoveUp();
+		if (up){
+			if (!FindPuzzle(&exploredSet,up)){
+				frontier.push(up);
+				numNodes++;
+			}
+		}
+		Puzzle* down = curr->MoveDown();
+		if (down){
+			if (!FindPuzzle(&exploredSet,down)){
+				frontier.push(down);
+				numNodes++;
+			}
+		}
+		if (frontier.size() > maxNodes){maxNodes  = frontier.size();}
+	}
+	if (found){
+		cout << "Solution found after creating " << numNodes << " nodes and a max of " << maxNodes << " in the queue at a time. Printing puzzle:" << endl;
+		sol->Print();
+		cout << "Number of steps taken: " << sol->steps << endl;
+	}
+	else{
+		
+		cout << "No solution found after creating " << numNodes << " and a max of " << maxNodes << " in the queue at a time." << endl;
+	}
+}
+
+void AStarSearch(Puzzle* initialPuzzle){
+	vector<Puzzle*> exploredSet;
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareAStar> frontier;
+	unsigned int numNodes = 1;
+	unsigned int maxNodes = 1;
+	frontier.push(initialPuzzle);
+	bool found = false;
+	Puzzle* sol = 0;
+	while (frontier.size()){
+		Puzzle* curr = frontier.top();
+		frontier.pop();
+		if (curr->CheckIfSolved()){
+			found = true;
+			sol = curr;
+			break;
+		}
+		exploredSet.push_back(curr);
+		Puzzle* left = curr->MoveLeft();
+		if (left){
+			if (!FindPuzzle(&exploredSet,left)){
+				frontier.push(left);
+				numNodes++;
+			}
+		}
+		Puzzle* right = curr->MoveRight();
+		if (right){
+			if (!FindPuzzle(&exploredSet,right)){
+				frontier.push(right);
+				numNodes++;
+			}
+		}
+		Puzzle* up = curr->MoveUp();
+		if (up){
+			if (!FindPuzzle(&exploredSet,up)){
+				frontier.push(up);
+				numNodes++;
+			}
+		}
+		Puzzle* down = curr->MoveDown();
+		if (down){
+			if (!FindPuzzle(&exploredSet,down)){
+				frontier.push(down);
+				numNodes++;
+			}
+		}
+		if (frontier.size() > maxNodes){maxNodes  = frontier.size();}
+	}
+	if (found){
+		cout << "Solution found after creating " << numNodes << " nodes and a max of " << maxNodes << " in the queue at a time. Printing puzzle:" << endl;
+		sol->Print();
+		cout << "Number of steps taken: " << sol->steps << endl;
+	}
+	else{
+		
+		cout << "No solution found after creating " << numNodes << " and a max of " << maxNodes << " in the queue at a time." << endl;
+	}
+}
+
+
+int main(){
+	vector<vector<int>*>* initialState = new vector<vector<int>*>();
+	for (unsigned int i = 0; i < PUZSIZE; i++){
+		vector<int>* row = new vector<int>();//create vector for the vector vector (((:
+		initialState->push_back(row);
+	}
+	int typeSelector = -1;
+	while (typeSelector != 1 && typeSelector != 2){
+		cout << "Type 1 to use a predefined puzzle or type 2 to use a custom puzzle" << endl;
+		cin >> typeSelector;
+	}
+	Puzzle* initialPuzzle = 0;
+	if (typeSelector == 1){
+		initialState->at(0)->push_back(0);
+		initialState->at(1)->push_back(1);
+		initialState->at(2)->push_back(2);
+		initialState->at(0)->push_back(4);
+		initialState->at(1)->push_back(5);
+		initialState->at(2)->push_back(3);
+		initialState->at(0)->push_back(7);
+		initialState->at(1)->push_back(8);
+		initialState->at(2)->push_back(6);
+		cout<< "thank you! printing the default puzzle" << endl;
+		initialPuzzle = new Puzzle(PUZSIZE,initialState);
+		initialPuzzle->Print();
+	}
+	if (typeSelector == 2){
+		int inputnum;
+		cout << "Please input the puzzle's numbers from left to right, top to bottom. Meaning start from top left, then top middle, then top right, then middle left..." << endl;
+		cout << "Use 0 to represent the empty slot." << endl;
+		cin >> inputnum;
+		initialState->at(0)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(1)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(2)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(0)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(1)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(2)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(0)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(1)->push_back(inputnum);
+		cout<< endl << "next number: ";
+		cin >> inputnum;
+		initialState->at(2)->push_back(inputnum);
+		cout<< endl << "thank you! printing the entered puzzle" << endl;
+		initialPuzzle = new Puzzle(PUZSIZE,initialState);
+		initialPuzzle->Print();
+	}
+	typeSelector = -1;
+	while (typeSelector != 1 && typeSelector != 2 && typeSelector != 3){
+		cout << "Type 1 to use breadth-first search, type 2 to use a greedy algorithm, and type 3 to use A*" << endl;
+		cin >> typeSelector;
+	}
+	if (typeSelector == 1){
+		cout<< endl << "thank you! solving the puzzle" << endl;
+		BreadthFirstSearch(initialPuzzle);
+	}
+	if (typeSelector == 2){
+		cout<< endl << "thank you! solving the puzzle" << endl;
+		GreedySearch(initialPuzzle);
+		
+	}
+	if (typeSelector == 3){
+		cout<< endl << "thank you! solving the puzzle" << endl;
+		AStarSearch(initialPuzzle);
+		
+	}
+	
 }

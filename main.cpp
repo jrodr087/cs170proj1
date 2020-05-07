@@ -14,6 +14,7 @@ class Puzzle{
 		unsigned int steps = 0;
 		vector<vector<int>*>* puz;
 		int dist = -1;
+		int miss = -1;
 		Puzzle(unsigned int s){
 			size = s;
 			int num = 1;
@@ -187,7 +188,35 @@ class Puzzle{
 			}
 			return dist;
 		}
-
+		int GetMisplacedTiles(){
+			if (miss > -1){
+				return miss;
+			}
+			miss = 0;
+			unsigned int currnum = 1;
+			for (int y = 0; y < size; y++){
+				for (int x = 0; x < size; x++){
+					bool breaking = false;
+					if (x == y && x == size-1){
+						break;
+					}
+					for ( int y2 = 0; y2 < size; y2++){
+						for (int x2 = 0; x2 < size; x2++){
+							if (currnum == puz->at(x2)->at(y2)){
+								if (x2 != x || y2 != y){
+									miss++;
+									breaking = true;
+								}
+							}
+							if (breaking){break;}
+						}
+						if (breaking){break;}
+					}
+					currnum++;
+				}
+			}
+			return miss;
+		}
 };
 
 bool FindPuzzle(vector<Puzzle*>* eset, Puzzle* p){
@@ -212,16 +241,16 @@ public:
     }
 };
 
-class PuzzleCompareGreedy
+class PuzzleCompareAStarMisplaced
 {
 public:
     bool operator() (Puzzle* p1, Puzzle* p2)
     {
-        return p1->GetEuclidian() > p2->GetEuclidian();
+        return (p1->GetMisplacedTiles()+p1->steps) > (p2->GetMisplacedTiles()+p2->steps);
     }
 };
 
-class PuzzleCompareAStar
+class PuzzleCompareAStarEuclid
 {
 public:
     bool operator() (Puzzle* p1, Puzzle* p2)
@@ -288,9 +317,9 @@ void BreadthFirstSearch(Puzzle* initialPuzzle){
 	}
 }
 
-void GreedySearch(Puzzle* initialPuzzle){
+void AStarMisplacedSearch(Puzzle* initialPuzzle){
 	vector<Puzzle*> exploredSet;
-	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareGreedy> frontier;
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareAStarMisplaced> frontier;
 	unsigned int numNodes = 1;
 	unsigned int maxNodes = 1;
 	frontier.push(initialPuzzle);
@@ -346,9 +375,9 @@ void GreedySearch(Puzzle* initialPuzzle){
 	}
 }
 
-void AStarSearch(Puzzle* initialPuzzle){
+void AStarEuclidSearch(Puzzle* initialPuzzle){
 	vector<Puzzle*> exploredSet;
-	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareAStar> frontier;
+	priority_queue<Puzzle*,vector<Puzzle*>,PuzzleCompareAStarEuclid> frontier;
 	unsigned int numNodes = 1;
 	unsigned int maxNodes = 1;
 	frontier.push(initialPuzzle);
@@ -467,7 +496,7 @@ int main(){
 	}
 	typeSelector = -1;
 	while (typeSelector != 1 && typeSelector != 2 && typeSelector != 3){
-		cout << "Type 1 to use breadth-first search, type 2 to use a greedy algorithm, and type 3 to use A*" << endl;
+		cout << "Type 1 to use breadth-first search, type 2 to use A* misplaced tiles, and type 3 to use A* euclidean distance" << endl;
 		cin >> typeSelector;
 	}
 	if (typeSelector == 1){
@@ -476,12 +505,12 @@ int main(){
 	}
 	if (typeSelector == 2){
 		cout<< endl << "thank you! solving the puzzle" << endl;
-		GreedySearch(initialPuzzle);
+		AStarMisplacedSearch(initialPuzzle);
 		
 	}
 	if (typeSelector == 3){
 		cout<< endl << "thank you! solving the puzzle" << endl;
-		AStarSearch(initialPuzzle);
+		AStarEuclidSearch(initialPuzzle);
 		
 	}
 	
